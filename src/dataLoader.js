@@ -21,7 +21,7 @@ const defaultOptions = {
 
 let currentOptions = Object.assign({}, defaultOptions)
 
-export function shadowNodeReducer (action, currentState) {
+function shadowNodeReducer (action, currentState) {
   const { type, payload } = action
 
   const pathPieces = payload.path.split('/')
@@ -45,7 +45,7 @@ export function shadowNodeReducer (action, currentState) {
   }
 }
 
-export function rootNodeReducer (action, currentState) {
+function rootNodeReducer (action, currentState) {
   const { type, payload } = action
 
   const pathPieces = (payload.dataPath || payload.path).split('/')
@@ -80,7 +80,7 @@ export function rootNodeReducer (action, currentState) {
   return newState
 }
 
-export function getReducers() {
+function getReducers() {
   return {
     [currentOptions.rootNode]: rootNodeReducer,
     [currentOptions.shadowNode]: shadowNodeReducer,
@@ -356,16 +356,16 @@ function runOnceReady (methodName) {
   }
 }
 
-const queuedDataLoaders = Object.assign({}, {
-  ...runOnceReady('attach'),
-  ...runOnceReady('listen'),
-})
+const queuedDataLoaders = Object.assign({}, runOnceReady('attach'), runOnceReady('listen'))
+
+const _internals = {
+  parseRoutePath,
+}
 
 export default queuedDataLoaders
 
 export {
   initLoader,
-  _internals: {
-    parseRoutePath,
-  },
+  getReducers,
+  _internals,
 }

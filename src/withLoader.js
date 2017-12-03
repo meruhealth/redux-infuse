@@ -9,7 +9,11 @@ export default function (paths, options) {
       || 'Component'
 
     class WithData extends Component {
-      listeners = []
+      constructor (props) {
+        super(props)
+        this.listeners = []
+      }
+
       componentWillMount () {
         const sources = (typeof paths === 'function') ? paths(this.props) : paths
         const loaderOptions = Object.assign({},  
@@ -35,7 +39,7 @@ export default function (paths, options) {
       }
       
       render () {
-        return <WrappedComponent {...this.props} />
+        return React.createElement(WrappedComponent, this.props)
       }
     }
 
