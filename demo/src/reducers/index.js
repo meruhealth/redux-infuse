@@ -1,6 +1,10 @@
 import appState from './appState'
 import { combineReducers } from 'redux'
+import { getReducers } from 'redux-infuse'
 
-export default combineReducers({
-  appState,
-})
+export default function () {
+  return combineReducers({
+    appState,
+    ...getReducers(),
+  })
+}

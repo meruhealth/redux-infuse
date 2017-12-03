@@ -1,5 +1,7 @@
 import { createStore, applyMiddleware } from 'redux'
-import reducers from './reducers'
+import getReducers from './reducers'
+import resolvers from './apiResolvers'
+import { initLoader } from 'redux-infuse'
 
 // A super-simple logger
 var logger = store => next => action => {
@@ -10,10 +12,15 @@ var logger = store => next => action => {
 }
 
 export default function configureStore (initialState) {
+  // renameReducers('data2', '_data2')
+  
   const store = createStore(
-    reducers,
+    getReducers(),
     initialState,
     applyMiddleware(logger),
   )
+
+  initLoader(store, resolvers)
+
   return store
 }

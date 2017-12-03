@@ -21,20 +21,45 @@ const defaultOptions = {
 
 let currentOptions = Object.assign({}, defaultOptions)
 
-function shadowNodeReducer (action, currentState) {
+function shadowNodeReducer (currentState = {}, action) {
+  if (!action || !action.payload) return currentState
   const { type, payload } = action
+
+  const {
+    path,
+    extraData,
+  } = action.payload
+
+  if (!path) return currentState
 
   const pathPieces = payload.path.split('/')
 
   let newState = currentState
   if (type === 'DATA_LOAD_START') {
-    newState = setIn(newState, pathPieces, {
+    const loadedAt = _.get(currentState, [...pathPieces, 'loadedAt'])
+    const newLoadingState = {
       startedLoadingAt: Date.now(),
-    })
+    }
+    // If item is already loaded, don't erase the loaded state
+    // as it may control a spinner, which is not necessary if 
+    // the data already exists
+    if (loadedAt) {
+      newLoadingState.loadedAt = loadingState.loadedAt
+    }
+    newState = setIn(newState, pathPieces, newLoadingState)
   } else if (type === 'DATA_LOAD_SUCCESS') {
+    const now = Date.now()
     newState = setIn(newState, pathPieces, {
-      loadedAt: Date.now(),
+      loadedAt: now,
     })
+
+    if (extraData) {
+      Object.keys(extraData).forEach(key => {
+        newState = setIn(newState, key.split('/'), {
+          loadedAt: now
+        })
+      })
+    }
   } else if (type === 'DATA_LOAD_FAIL') {
     const loadingState = _.get(currentState, pathPieces)
     const newLoadingState = Object.assign({}, loadingState, {
@@ -43,18 +68,25 @@ function shadowNodeReducer (action, currentState) {
     })
     newState = setIn(newState, pathPieces, newLoadingState)
   }
+
+  return newState
 }
 
-function rootNodeReducer (action, currentState) {
+function rootNodeReducer (currentState = {}, action) {
+  if (!action || !action.payload) return currentState
   const { type, payload } = action
 
-  const pathPieces = (payload.dataPath || payload.path).split('/')
+  const path = payload.dataPath || payload.path
+  if (!path) return currentState
+
+  const pathPieces = path.split('/')
 
   let newState = currentState
   if (type === 'DATA_LOAD_SUCCESS') {
     const {
       data,
       appendIndex,
+      extraData,
     } = payload
     if (data) {
       newState = setIn(newState, pathPieces, data)
@@ -74,6 +106,12 @@ function rootNodeReducer (action, currentState) {
         newIndex = newIndex.concat(currentIndex.slice(currentIndex.indexOf(last) + 1))
       }
       newState = setIn(newState, pathPieces, newIndex)
+    }
+
+    if (extraData) {
+      Object.keys(extraData).forEach(key => {
+        newState = setIn(newState, key.split('/'), extraData[key])
+      })
     }
   }
 
@@ -97,7 +135,7 @@ function parseRoutePath (path, route) {
     const key = matchParts[i]
     const val = pathParts[i]
     if (key === '*' && i === (matchParts.length - 1)) {
-      result.rest = pathParts.split(i).join('/')
+      result.rest = pathParts.slice(i).join('/')
       break
     } else if (!val) {
       return false
@@ -182,27 +220,17 @@ class Resolver {
       timeoutPromise,
       cancelPromise,
     ])
-    .then(({data, extraData, path: dataPath}) => {
+    .then(({data, extraData, path: dataPath, appendIndex}) => {
       store.dispatch({
         type: 'DATA_LOAD_SUCCESS',
         payload: {
           path,
           data,
           dataPath,
+          appendIndex,
+          extraData,
         }
       })
-      
-      if (extraData) {
-        Object.keys(extraData).forEach(key => {
-          store.dispatch({
-            type: 'DATA_LOAD_SUCCESS',
-            payload: {
-              path: key,
-              data: extraData[key],
-            }
-          })
-        })
-      }
     })
     .catch(err => {
       if (err.code === 'CANCELLED') {
@@ -226,7 +254,7 @@ class Resolver {
         }
       })
     })
-    .finally(() => {
+    .then(() => {
       delete cancellableRequests[path]
     })
   }
@@ -297,6 +325,15 @@ function initLoader (argStore, argResolvers, options) {
   setReady()
 }
 
+function renameReducers (data, shadow) {
+  currentOptions = Object.assign({}, currentOptions, {
+    rootNode: data
+  })
+  if (shadow) {
+    currentOptions.shadowNode = shadow
+  }
+}
+
 function findResolver (path, pathOptions) {
   for (let i = 0, max = resolvers.length; i < max; i++) {
     const resolver = resolvers[i]
@@ -321,14 +358,7 @@ const dataLoader = {
       return
     }
 
-    store.dispatch({
-      type: 'LOAD_DATA_START',
-      payload: {
-        path,
-      },
-    })
     return resolver.execute(pathResolved)
-    return Promise.resolve()
   },
 
   listen (path, pathOptions, loaderOptions) {
@@ -366,6 +396,7 @@ export default queuedDataLoaders
 
 export {
   initLoader,
+  renameReducers,
   getReducers,
   _internals,
 }

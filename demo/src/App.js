@@ -3,6 +3,7 @@ import './App.css';
 import UserSideBar from './UserSideBar'
 import configureStore from './store'
 import { actions } from './ducks/app'
+import { Provider } from 'react-redux'
 
 const ResultView = () => <div>ResultView</div>
 
@@ -19,11 +20,13 @@ class App extends Component {
 
   render() {
     return (
-      <div className="App">
-        <UserSideBar />
-        <ResultView />
-        <button onClick={this.tryIt}>Try this</button>
-      </div>
+      <Provider store={this.store}>
+        <div className="App">
+          <UserSideBar />
+          <ResultView />
+          <button onClick={this.tryIt}>Try this</button>
+        </div>
+      </Provider>
     );
   }
 }

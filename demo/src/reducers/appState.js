@@ -4,7 +4,7 @@ export default function appState (state = {}, action) {
     case 'TEST':
       return {
         ...state,
-        test: action.payload,
+        test: (state.test === action.payload ? null : action.payload),
       }
 
     default:
