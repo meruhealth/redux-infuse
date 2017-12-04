@@ -61,12 +61,10 @@ function shadowNodeReducer (currentState = {}, action) {
       })
     }
   } else if (type === 'DATA_LOAD_FAIL') {
-    const loadingState = _.get(currentState, pathPieces)
-    const newLoadingState = Object.assign({}, loadingState, {
+    newState = setIn(newState, pathPieces, {
       failedAt: timestamp,
       error: payload.error,
     })
-    newState = setIn(newState, pathPieces, newLoadingState)
   }
 
   return newState
