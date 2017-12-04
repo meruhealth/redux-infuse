@@ -30,13 +30,55 @@ const api = {
       resolve(users[id])
     }, 500)
   }),
+
+  listenToUsers: (callback) => {
+    Object.keys(users).forEach(uid => {
+      callback({
+        key: uid,
+        value: users[uid]
+      })
+    })
+    callback({
+      key: 'u4',
+      value: {
+        id: 'u4',
+        name: 'Jukka',
+        age: 31,
+      },
+    })
+    const timer1 = setTimeout(() => {
+      callback({
+        key: 'u5',
+        value: {
+          id: 'u5',
+          name: 'Mia',
+          age: 28,
+        },
+      })
+    }, 5000)
+    const timer2 = setTimeout(() => {
+      callback({
+        key: 'u6',
+        value: {
+          id: 'u6',
+          name: 'Liisa',
+          age: 45,
+        },
+      })
+    }, 10000)
+    return () => {
+      clearTimeout(timer1)
+      clearTimeout(timer2)
+    }
+  }
 }
 
 
 resolvers.push({
-  match: [
-    "users/all",
-  ],
+  match: "users/index",
+  initialState: {
+    'users/index': [],
+  },
   fetch (pathResolved) {
     return api.getUsers().then(users => {
       const extraData = {}
@@ -45,15 +87,34 @@ resolvers.push({
       })
       return {
         appendIndex: users.map(user => user.id),
-        path: 'users/all',
         extraData,
       }
+    })
+  },
+  shouldWaitForValue: true,
+  listen (pathResolved, callback) {
+    let previousItem
+    return api.listenToUsers(data => {
+      const appendIndex = [data.key]
+      if (previousItem) {
+        appendIndex.splice(0, 0, previousItem)
+      }
+      previousItem = data.key
+      callback({
+        appendIndex,
+        extraData: {
+          [`users/${data.key}`]: data.value,
+        },
+      })
     })
   },
 })
 
 resolvers.push({
   match: "users/:uid/*",
+  initialState: {
+    'users': {},
+  },
   fetch (pathResolved) {
     const {
       uid,
@@ -73,7 +134,7 @@ resolvers.push({
       }
     })
   },
-  getParentPath: pathResolved => {
+  getParentPath (pathResolved) {
     const {
       rest: subpath,
       uid,
@@ -85,7 +146,7 @@ resolvers.push({
       const newSubpath = parts.length ? `/${parts.join('/')}` : ''
       return `users/${uid}${newSubpath}`
     }
-  }
+  },
 })
 
 export default resolvers

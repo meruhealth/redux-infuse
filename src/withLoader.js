@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import React, { Component } from 'react'
-import dataLoader from './dataLoader'
+import attachDataLoader from './dataLoader'
 
 export default function (paths, options) {
   return function (WrappedComponent) {
@@ -12,21 +12,27 @@ export default function (paths, options) {
       constructor (props) {
         super(props)
         this.listeners = []
+        this.isAttached = true
       }
 
       componentWillMount () {
         const sources = (typeof paths === 'function') ? paths(this.props) : paths
-        const loaderOptions = Object.assign({},  
-          options, 
+        const loaderOptions = Object.assign({},
+          options,
           { componentName: wrappedComponentName },
         )
         Object.keys(sources).forEach(path => {
           const pathOptions = sources[path]
-          if (typeof pathOptions === 'object' && pathOptions.listen) {
-            this.listeners.push(dataLoader.listenTo(path, pathOptions, loaderOptions))
-          } else {
-            dataLoader.attach(path, pathOptions, loaderOptions)
-          }
+          attachDataLoader(path, pathOptions, loaderOptions).then(unsubscribe => {
+            if (typeof unsubscribe === 'function') {
+              if (this.isAttached) {
+                this.listeners.push(unsubscribe)
+              } else {
+                // Unsubscribe immediately if the component is not mounted
+                unsubscribe()
+              }
+            }
+          })
         })
       }
 
@@ -36,15 +42,16 @@ export default function (paths, options) {
           unsubscriber()
           unsubscriber = this.listeners.pop()
         }
+        this.isAttached = false
       }
-      
+
       render () {
         return React.createElement(WrappedComponent, this.props)
       }
     }
 
     WithData.displayName = `withData(${wrappedComponentName})`
-    
+
     return WithData
   }
 }

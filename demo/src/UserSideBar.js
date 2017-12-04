@@ -3,7 +3,7 @@ import { withLoader } from 'redux-infuse'
 import { connect } from 'react-redux'
 
 function Comp (props) {
-  const users = (props.users && props.users.all) || []
+  const users = props.users.index
   return (
     <div className="UserSideBar">
       UserSideBar
@@ -17,7 +17,7 @@ function Comp (props) {
 }
 
 const compWithLoader = withLoader({
-  'users/all': true,
+  'users/index': { listen: true },
 })(Comp)
 
 const mapStateToProps = state => {

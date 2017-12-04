@@ -28,7 +28,8 @@ function shadowNodeReducer (currentState = {}, action) {
   const {
     path,
     extraData,
-  } = action.payload
+    timestamp,
+  } = payload
 
   if (!path) return currentState
 
@@ -38,32 +39,31 @@ function shadowNodeReducer (currentState = {}, action) {
   if (type === 'DATA_LOAD_START') {
     const loadedAt = _.get(currentState, [...pathPieces, 'loadedAt'])
     const newLoadingState = {
-      startedLoadingAt: Date.now(),
+      startedLoadingAt: timestamp,
     }
     // If item is already loaded, don't erase the loaded state
-    // as it may control a spinner, which is not necessary if 
+    // as it may control a spinner, which is not necessary if
     // the data already exists
     if (loadedAt) {
-      newLoadingState.loadedAt = loadingState.loadedAt
+      newLoadingState.loadedAt = loadedAt
     }
     newState = setIn(newState, pathPieces, newLoadingState)
   } else if (type === 'DATA_LOAD_SUCCESS') {
-    const now = Date.now()
     newState = setIn(newState, pathPieces, {
-      loadedAt: now,
+      loadedAt: timestamp,
     })
 
     if (extraData) {
       Object.keys(extraData).forEach(key => {
         newState = setIn(newState, key.split('/'), {
-          loadedAt: now
+          loadedAt: timestamp
         })
       })
     }
   } else if (type === 'DATA_LOAD_FAIL') {
     const loadingState = _.get(currentState, pathPieces)
     const newLoadingState = Object.assign({}, loadingState, {
-      failedAt: Date.now(),
+      failedAt: timestamp,
       error: payload.error,
     })
     newState = setIn(newState, pathPieces, newLoadingState)
@@ -76,12 +76,17 @@ function rootNodeReducer (currentState = {}, action) {
   if (!action || !action.payload) return currentState
   const { type, payload } = action
 
+  if (type === 'LOAD_DATA_INITIAL') {
+    return payload
+  }
+
   const path = payload.dataPath || payload.path
   if (!path) return currentState
 
   const pathPieces = path.split('/')
 
   let newState = currentState
+
   if (type === 'DATA_LOAD_SUCCESS') {
     const {
       data,
@@ -91,20 +96,27 @@ function rootNodeReducer (currentState = {}, action) {
     if (data) {
       newState = setIn(newState, pathPieces, data)
     } else if (appendIndex) {
-      const first = appendIndex[0]
-      const last = appendIndex[appendIndex.length - 1]
       const currentIndex = _.get(currentState, pathPieces)
+      const first = !currentIndex ? -1 : currentIndex.indexOf(appendIndex[0])
+      const last = !currentIndex ? -1 : currentIndex.indexOf(appendIndex[appendIndex.length - 1])
       let newIndex = []
-      // Append currentIndex items preceding the new items
-      if (currentIndex && currentIndex.indexOf(first) !== -1) {
-        newIndex = currentIndex.slice(0, currentIndex.indexOf(first))
+
+      if (first !== -1 || last !== -1) {
+        // Append currentIndex items preceding the new items
+        if (first !== -1) {
+          newIndex = currentIndex.slice(0, first)
+        }
+        // Append new items
+        newIndex = newIndex.concat(appendIndex)
+        // Append currentIndex items after the new items
+        if (last !== -1) {
+          newIndex = newIndex.concat(currentIndex.slice(last + 1))
+        }
+      } else {
+        // There's not reference point -> just append
+        newIndex = currentIndex.concat(appendIndex)
       }
-      // Append new items
-      newIndex = newIndex.concat(appendIndex)
-      // Append currentIndex items after the new items
-      if (currentIndex && currentIndex.indexOf(last) !== -1) {
-        newIndex = newIndex.concat(currentIndex.slice(currentIndex.indexOf(last) + 1))
-      }
+
       newState = setIn(newState, pathPieces, newIndex)
     }
 
@@ -135,7 +147,10 @@ function parseRoutePath (path, route) {
     const key = matchParts[i]
     const val = pathParts[i]
     if (key === '*' && i === (matchParts.length - 1)) {
-      result.rest = pathParts.slice(i).join('/')
+      const rest = pathParts.slice(i).join('/')
+      if (rest) {
+        result.rest = rest
+      }
       break
     } else if (!val) {
       return false
@@ -150,14 +165,45 @@ function parseRoutePath (path, route) {
   return result
 }
 
+const getNextID = (() => {
+  let id = 1
+  return () => (id++).toString()
+})()
+
+const pathListeners = {}
+
+/**
+ * Resolver is defined with the following options:
+ *
+ * props: Object({
+ *   match: String | [String] | RegExp | Function -> result: Object
+ *   fetch: Function(pathResolved: Object)
+ *     -> data: Object({data: Object, appendIndex: Array, path: String (optional)})
+ *   listen: Function(pathResolved, onData: Function({data: Object, appendIndex: Array, path: String (optional)}) -> unsubscribe: Function
+ *   shouldWaitForValue: Boolean (optional)
+ *   getParentPath: Function(pathResolved) -> path: String
+ * })
+ */
 class Resolver {
   constructor (props) {
     // Save expected props
     this.props = props
+
+    if (props.fetch) {
+      this.isFetcher = true
+    }
+
+    if (props.listen) {
+      this.isListener = true
+    }
   }
 
   matchPath (path, pathOptions) {
-    if (typeof this.props.match === 'string') {
+    if (pathOptions.listen && !this.isListener) {
+      return false
+    } else if (!pathOptions.listen && !this.isFetcher) {
+      return false
+    } else if (typeof this.props.match === 'string') {
       return parseRoutePath(path, this.props.match)
     } else if (this.props.match instanceof Array) {
       for (let i = 0; i < this.props.match.length; i++) {
@@ -195,6 +241,7 @@ class Resolver {
     store.dispatch({
       type: 'DATA_LOAD_START',
       payload: {
+        timestamp: Date.now(),
         path,
       }
     })
@@ -216,20 +263,20 @@ class Resolver {
     })
 
     return Promise.race([
-      this.props.fetch(pathResolved), 
+      this.props.fetch(pathResolved),
       timeoutPromise,
       cancelPromise,
     ])
-    .then(({data, extraData, path: dataPath, appendIndex}) => {
+    .then(dataReceived => {
+      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex'])
+      payload.path = path
+      payload.timestamp = Date.now()
+      if (dataReceived.path) {
+        payload.dataPath = newData.path
+      }
       store.dispatch({
         type: 'DATA_LOAD_SUCCESS',
-        payload: {
-          path,
-          data,
-          dataPath,
-          appendIndex,
-          extraData,
-        }
+        payload,
       })
     })
     .catch(err => {
@@ -249,7 +296,8 @@ class Resolver {
       store.dispatch({
         type: 'DATA_LOAD_FAIL',
         payload: {
-          data: path,
+          timestamp: Date.now(),
+          path,
           error,
         }
       })
@@ -257,6 +305,73 @@ class Resolver {
     .then(() => {
       delete cancellableRequests[path]
     })
+  }
+
+  startListening (pathResolved) {
+    const path = pathResolved.path
+    let timeoutTimer
+
+    console.log('Starting to listen', path)
+
+    if (this.props.shouldWaitForValue) {
+      timeoutTimer = setTimeout(() => {
+        store.dispatch({
+          type: 'DATA_LOAD_FAIL',
+          payload: {
+            timestamp: Date.now(),
+            error: {
+              message: `Fetching initial value for ${path} failed`,
+              code: 'TIMEOUT',
+            },
+            path,
+          }
+        })
+      }, currentOptions.dataFetchTimeout)
+
+      store.dispatch({
+        type: 'DATA_LOAD_START',
+        payload: {
+          timestamp: Date.now(),
+          path,
+        },
+      })
+    }
+
+    const unsubscribe = this.props.listen(pathResolved, dataReceived => {
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer)
+        timeoutTimer = null
+      }
+      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex'])
+      payload.path = path
+      payload.timestamp = Date.now()
+      if (dataReceived.path) {
+        payload.dataPath = dataReceived.path
+      }
+      store.dispatch({
+        type: 'DATA_LOAD_SUCCESS',
+        payload,
+      })
+    })
+
+    return () => {
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer)
+        timeoutTimer = null
+        store.dispatch({
+          type: 'DATA_LOAD_FAIL',
+          payload: {
+            path,
+            error: {
+              message: `Fetching initial value for ${path} was cancelled`,
+              code: 'CANCELLED',
+            }
+          }
+        })
+      }
+      console.log('Unsubscribed', path)
+      unsubscribe()
+    }
   }
 
   isDownloadNeeded (pathResolved) {
@@ -298,11 +413,47 @@ class Resolver {
   }
 
   execute (pathResolved) {
+    if (pathResolved.pathOptions.listen) {
+      return this.listen(pathResolved)
+    }
+
     let shouldDownload = this.isDownloadNeeded(pathResolved)
     if (!shouldDownload) {
-      return 
+      return
     }
-    return this.fetch(pathResolved)
+
+    // Don't return promise as there's nothing to detach in fetch
+    this.fetch(pathResolved)
+  }
+
+  listen (pathResolved) {
+    const id = getNextID()
+    const path = pathResolved.path
+    if (!pathListeners[path]) {
+      pathListeners[path] = {
+        unsubscribe: this.startListening(pathResolved),
+        listeners: [id],
+      }
+    } else {
+      pathListeners[path].listeners.push(id)
+    }
+
+    return () => this.unsubscribe(path, id)
+  }
+
+  unsubscribe (path, id) {
+    if (!pathListeners[path]) {
+      return
+    }
+    const listeners = pathListeners[path].listeners
+    const i = listeners.indexOf(id)
+    if (i !== -1) {
+      listeners.splice(i, 1)
+    }
+    if (!listeners.length) {
+      pathListeners[path].unsubscribe()
+      pathListeners[path] = null
+    }
   }
 
 }
@@ -313,15 +464,34 @@ class Resolver {
 
 let resolvers = []
 
+let isReady = false
 let setReady
 const onceReady = new Promise(resolve => {
-  setReady = () => resolve()
+  setReady = () => {
+    isReady = true
+    resolve()
+  }
 })
 
 function initLoader (argStore, argResolvers, options) {
-  resolvers = argResolvers.map(props => new Resolver(props))
   store = argStore
   currentOptions = Object.assign({}, defaultOptions, options)
+  const initialState = {}
+  resolvers = argResolvers.map(props => {
+    if (props.initialState) {
+      Object.keys(props.initialState).forEach(path => {
+        const parts = path.split('/')
+        const currentVal = _.get(initialState, parts)
+        const val = currentVal ? _.merge(currentVal, props.initialState[path]) : props.initialState[path]
+        _.set(initialState, parts, val)
+      })
+    }
+    return new Resolver(props)
+  })
+  store.dispatch({
+    type: 'LOAD_DATA_INITIAL',
+    payload: initialState,
+  })
   setReady()
 }
 
@@ -347,52 +517,30 @@ function findResolver (path, pathOptions) {
   }
 }
 
-const dataLoader = {
-  attach (path, pathOptions, loaderOptions) {
-    const {
-      resolver,
-      pathResolved,
-    } = findResolver(path, pathOptions)
-    if (!resolver) {
-      console.error('No resolver could be found for', path, pathOptions)
-      return
-    }
-
-    return resolver.execute(pathResolved)
-  },
-
-  listen (path, pathOptions, loaderOptions) {
-    for (let i = 0, max = resolvers.length; i < max; i++) {
-      const resolver = resolvers[i]
-      if (!resolver.isListener) {
-        continue
-      }
-
-    }
-
-    return () => {
-
-    }
+function attachDataLoader (path, pathOptionsArg, loaderOptions) {
+  const pathOptions = typeof pathOptionsArg === 'object' ? pathOptionsArg : {}
+  const foundResolver = findResolver(path, pathOptions)
+  if (!foundResolver) {
+    console.error(`No resolver could be found for '${path}'`, pathOptions)
+    return
   }
-}
+  const {
+    resolver,
+    pathResolved,
+  } = foundResolver
 
-function runOnceReady (methodName) {
-  return {
-    [methodName]: (...args) => {
-      return onceReady.then(() => {
-        return dataLoader[methodName](...args)
-      })
-    },
-  }
+  return resolver.execute(pathResolved)
 }
-
-const queuedDataLoaders = Object.assign({}, runOnceReady('attach'), runOnceReady('listen'))
 
 const _internals = {
   parseRoutePath,
 }
 
-export default queuedDataLoaders
+export default function attachDataLoaderOnceReady (...args) {
+  return onceReady.then(() => {
+    return attachDataLoader(...args)
+  })
+}
 
 export {
   initLoader,
