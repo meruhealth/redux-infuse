@@ -94,9 +94,9 @@ function rootNodeReducer (currentState = {}, action) {
     if (data) {
       newState = setIn(newState, pathPieces, data)
     } else if (appendIndex) {
-      const currentIndex = _.get(currentState, pathPieces)
-      const first = !currentIndex ? -1 : currentIndex.indexOf(appendIndex[0])
-      const last = !currentIndex ? -1 : currentIndex.indexOf(appendIndex[appendIndex.length - 1])
+      const currentIndex = _.get(currentState, pathPieces) || []
+      const first = currentIndex.indexOf(appendIndex[0])
+      const last = currentIndex.indexOf(appendIndex[appendIndex.length - 1])
       let newIndex = []
 
       if (first !== -1 || last !== -1) {
