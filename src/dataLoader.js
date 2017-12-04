@@ -515,7 +515,7 @@ function findResolver (path, pathOptions) {
   }
 }
 
-function attachDataLoader (path, pathOptionsArg, loaderOptions) {
+function attachDataLoaderSync (path, pathOptionsArg, loaderOptions) {
   const pathOptions = typeof pathOptionsArg === 'object' ? pathOptionsArg : {}
   const foundResolver = findResolver(path, pathOptions)
   if (!foundResolver) {
@@ -534,9 +534,9 @@ const _internals = {
   parseRoutePath,
 }
 
-export default function attachDataLoaderOnceReady (...args) {
+export default function attachDataLoader (...args) {
   return onceReady.then(() => {
-    return attachDataLoader(...args)
+    return attachDataLoaderSync(...args)
   })
 }
 
