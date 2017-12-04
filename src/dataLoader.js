@@ -270,7 +270,7 @@ class Resolver {
       payload.path = path
       payload.timestamp = Date.now()
       if (dataReceived.path) {
-        payload.dataPath = newData.path
+        payload.dataPath = dataReceived.path
       }
       store.dispatch({
         type: 'DATA_LOAD_SUCCESS',
