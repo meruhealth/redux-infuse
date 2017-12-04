@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import { Component, createElement } from 'react'
 import attachDataLoader from './dataLoader'
 
 export default function (paths, options) {
@@ -45,7 +45,7 @@ export default function (paths, options) {
       }
 
       render () {
-        return React.createElement(WrappedComponent, this.props)
+        return createElement(WrappedComponent, this.props)
       }
     }
 
