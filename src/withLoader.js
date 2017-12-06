@@ -1,5 +1,6 @@
 import { Component, createElement } from 'react'
 import attachDataLoader from './dataLoader'
+import attachDependencies from './dependencyLoader'
 
 export default function (paths, options) {
   return function (WrappedComponent) {
@@ -13,6 +14,7 @@ export default function (paths, options) {
 
         this.loaders = {}
         this.isAttached = true
+        this.detachDependencies = null
 
         this.loaderOptions = Object.assign({}, options, {
           componentName: wrappedComponentName,
@@ -20,6 +22,9 @@ export default function (paths, options) {
       }
 
       componentWillMount () {
+        if (this.loaderOptions.dependencies) {
+          this.detachDependencies = attachDependencies(this.loaderOptions.dependencies)
+        }
         this.attachLoaders(this.props)
       }
 
@@ -38,6 +43,10 @@ export default function (paths, options) {
           }
         })
         this.loaders = {}
+        if (this.detachDependencies) {
+          this.detachDependencies()
+          this.detachDependencies = null
+        }
         this.isAttached = false
       }
 

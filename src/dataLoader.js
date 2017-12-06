@@ -11,6 +11,10 @@ let store = {
   }
 }
 
+export function getStore () {
+  return store
+}
+
 const defaultOptions = {
   rootNode: 'data',
   shadowNode: '_data',
