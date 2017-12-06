@@ -90,7 +90,21 @@ function rootNodeReducer (currentState = {}, action) {
       data,
       appendIndex,
       extraData,
+      removeFromIndex,
     } = payload
+
+    if (removeFromIndex) {
+      const newIndex = (_.get(currentState, pathPieces) || []).slice()
+      removeFromIndex.forEach(key => {
+        const i = newIndex.indexOf(key)
+        if (i !== -1) {
+          newIndex.splice(i, 1)
+        }
+      })
+
+      newState = setIn(newState, pathPieces, newIndex)
+    }
+
     if (data) {
       newState = setIn(newState, pathPieces, data)
     } else if (appendIndex) {
@@ -340,7 +354,7 @@ class Resolver {
         clearTimeout(timeoutTimer)
         timeoutTimer = null
       }
-      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex'])
+      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex', 'removeFromIndex'])
       payload.path = path
       payload.timestamp = Date.now()
       if (dataReceived.path) {
