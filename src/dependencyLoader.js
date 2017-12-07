@@ -1,4 +1,4 @@
-import { getStore } from './dataLoader'
+import { getStore } from './config'
 
 function getState () {
   return getStore().getState()
