@@ -216,10 +216,11 @@ export default class Resolver {
       throw new Error('Shadow state not found')
       return
     }
-    const pathState = _.get(state, pathResolved.path.split('/'))
-    if (pathState.indexOf('undefined') !== -1) {
+    const pathParts = pathResolved.path.split('/')
+    if (pathParts.indexOf('undefined') !== -1) {
       console.warn(`Loader path contains 'undefined'. Make sure you are validating the params before requesting them!`)
     }
+    const pathState = _.get(state, pathParts)
     if (pathState) {
       const retryAfter = pathResolved.pathOptions.retryAfter || pathResolved.loaderOptions.retryAfter || getConfig('retryAfter')
       const refreshAfter = pathResolved.pathOptions.refreshAfter || pathResolved.loaderOptions.refreshAfter || getConfig('refreshAfter')
