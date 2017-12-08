@@ -65,11 +65,17 @@ export function renameReducers (data, shadow) {
 export function findResolver (path, pathOptions) {
   for (let i = 0, max = resolvers.length; i < max; i++) {
     const resolver = resolvers[i]
-    const pathResolved = resolver.match(path, pathOptions)
-    if (pathResolved) {
+    const result = resolver.match(path, pathOptions)
+    if (result) {
+      const getPathResolved = loaderOptions => ({result, path, pathOptions, loaderOptions})
       return {
         resolver,
-        pathResolved,
+        execute: loaderOptions => {
+          return resolver.execute(getPathResolved(loaderOptions))
+        },
+        isDownloadNeeded: loaderOptions => {
+          return resolver.isDownloadNeeded(getPathResolved(loaderOptions))
+        },
       }
     }
   }

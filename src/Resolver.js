@@ -35,11 +35,11 @@ export default class Resolver {
     }
   }
 
-  matchPath (path, pathOptions) {
+  match (path, pathOptions) {
     if (pathOptions.listen && !this.isListener) {
-      return false
+      return
     } else if (!pathOptions.listen && !this.isFetcher) {
-      return false
+      return
     } else if (typeof this.props.match === 'string') {
       return parseRoutePath(path, this.props.match)
     } else if (this.props.match instanceof Array) {
@@ -50,20 +50,13 @@ export default class Resolver {
           return result
         }
       }
-      return false
+      return
     } else if (this.props.match instanceof RegExp) {
       return this.props.match.exec(path)
     } else if (typeof this.props.match === 'function') {
       return this.props.match(path, pathOptions)
     } else {
-      return false
-    }
-  }
-
-  match (path, pathOptions, loaderOptions) {
-    const result = this.matchPath(path, pathOptions)
-    if (result) {
-      return { result, path, pathOptions, loaderOptions }
+      return
     }
   }
 
@@ -224,6 +217,9 @@ export default class Resolver {
       return
     }
     const pathState = _.get(state, pathResolved.path.split('/'))
+    if (pathState.indexOf('undefined') !== -1) {
+      console.warn(`Loader path contains 'undefined'. Make sure you are validating the params before requesting them!`)
+    }
     if (pathState) {
       const retryAfter = pathResolved.pathOptions.retryAfter || pathResolved.loaderOptions.retryAfter || getConfig('retryAfter')
       const refreshAfter = pathResolved.pathOptions.refreshAfter || pathResolved.loaderOptions.refreshAfter || getConfig('refreshAfter')
@@ -236,15 +232,12 @@ export default class Resolver {
     if (shouldDownload && this.props.getParentPath) {
       const parentPath = this.props.getParentPath(pathResolved)
       if (parentPath) {
-        const {
-          resolver,
-          pathResolved: parentPathResolved,
-        } = findResolver(parentPath, pathResolved.pathOptions)
-        if (!resolver) {
+        const foundResolver = findResolver(parentPath, pathResolved.pathOptions)
+        if (!foundResolver) {
           throw new Error('Parent resolver could not be found')
           return
         }
-        shouldDownload = resolver.isDownloadNeeded(parentPathResolved)
+        shouldDownload = foundResolver.isDownloadNeeded(pathResolved.loaderOptions)
       }
     }
     return shouldDownload
