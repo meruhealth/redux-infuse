@@ -98,15 +98,30 @@ export default class Resolver {
       cancelPromise,
     ])
     .then(dataReceived => {
-      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex'])
+      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex', 'removeFromIndex'])
+      if (_.isEmpty(payload)) {
+        throw new Error(`Resolver for path '${path}' dispatched empty response`)
+      }
       payload.path = path
       payload.timestamp = Date.now()
       if (dataReceived.path) {
         payload.dataPath = dataReceived.path
       }
-      getStore().dispatch({
+
+      const action = {
         type: DATA_LOAD_SUCCESS,
         payload,
+      }
+      const onceDispatched = new Promise(resolve => {
+        getStore().dispatch(action)
+        resolve()
+      })
+
+      // Don't carry responsibility for the errors
+      // happening possibly as a consequence of the data loaded
+      return onceDispatched.catch(err => {
+        const payloadStr = JSON.stringify(action.payload)
+        console.warn(`Error occurred as a consequence of dispatch: ${action.type} ${payloadStr}`, err)
       })
     })
     .catch(err => {
@@ -178,10 +193,15 @@ export default class Resolver {
       if (dataReceived.path) {
         payload.dataPath = dataReceived.path
       }
-      getStore().dispatch({
-        type: DATA_LOAD_SUCCESS,
-        payload,
-      })
+      try {
+        getStore().dispatch({
+          type: DATA_LOAD_SUCCESS,
+          payload,
+        })
+      } catch (err) {
+        const payloadStr = JSON.stringify(payload)
+        console.warn(`Error occurred as a consequence of dispatch: ${DATA_LOAD_SUCCESS} ${payloadStr}`, err)
+      }
     })
 
     return () => {
