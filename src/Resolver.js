@@ -120,7 +120,7 @@ export default class Resolver {
       // Don't carry responsibility for the errors
       // happening possibly as a consequence of the data loaded
       return onceDispatched.catch(err => {
-        const payloadStr = JSON.stringify(action.payload)
+        const payloadStr = JSON.stringify(action.payload).substring(0, 255)
         console.warn(`Error occurred as a consequence of dispatch: ${action.type} ${payloadStr}`, err)
       })
     })
@@ -199,7 +199,7 @@ export default class Resolver {
           payload,
         })
       } catch (err) {
-        const payloadStr = JSON.stringify(payload)
+        const payloadStr = JSON.stringify(payload).substring(0, 255)
         console.warn(`Error occurred as a consequence of dispatch: ${DATA_LOAD_SUCCESS} ${payloadStr}`, err)
       }
     })
@@ -238,7 +238,7 @@ export default class Resolver {
     }
     const pathParts = pathResolved.path.split('/')
     if (pathParts.indexOf('undefined') !== -1) {
-      console.warn(`Loader path contains 'undefined'. Make sure you are validating the params before requesting them!`)
+      console.warn(`Loader path contains 'undefined'. Make sure you are validating the params before requesting them! Path: ${pathResolved.path}`)
     }
     const pathState = _.get(state, pathParts)
     if (pathState) {
