@@ -1,4 +1,4 @@
-import withLoader from './withLoader'
+import withData from './withData'
 import { getReducers, renameReducers, getConfig, init } from './config'
 import Resolver from './Resolver'
 import DataInfuser from './DataInfuser'
@@ -28,5 +28,6 @@ export function initLoader (argStore, argResolvers, options) {
   return init(argStore, resolvers, initialState, options)
 }
 
-export default withLoader
-export { withLoader, renameReducers, DataInfuser }
+export default DataInfuser
+export { withData, renameReducers, DataInfuser }
+

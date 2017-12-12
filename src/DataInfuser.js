@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { createSelector } from 'reselect'
 import { getConfig } from './config'
-import withLoader from './withLoader'
+import withData from './withData'
 
 export default class DataInfuser {
   constructor (...args) {
@@ -101,5 +101,5 @@ export default class DataInfuser {
 }
 
 DataInfuser.wrap = (wrappedComponent, options) => {
-  return withLoader(null, options)(wrappedComponent)
+  return withData(null, options)(wrappedComponent)
 }
