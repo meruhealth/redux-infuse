@@ -18,13 +18,13 @@ export default function shadowNodeReducer (currentState = {}, action) {
 
   let newState = currentState
   if (type === DATA_LOAD_START) {
-    const loadedAt = _.get(currentState, [...pathPieces, 'loadedAt'])
     const newLoadingState = {
       startedLoadingAt: timestamp,
     }
     // If item is already loaded, don't erase the loaded state
     // as it may control a spinner, which is not necessary if
     // the data already exists
+    const loadedAt = _.get(currentState, [...pathPieces, 'loadedAt'])
     if (loadedAt) {
       newLoadingState.loadedAt = loadedAt
     }

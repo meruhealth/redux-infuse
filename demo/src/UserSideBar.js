@@ -1,5 +1,5 @@
 import React from 'react'
-import { withLoader } from 'redux-infuse'
+import { DataInfuser } from 'redux-infuse'
 import { connect } from 'react-redux'
 
 function Comp (props) {
@@ -16,14 +16,15 @@ function Comp (props) {
   )
 }
 
-const compWithLoader = withLoader({
-  'users/index': { listen: true },
-})(Comp)
+const infuser = new DataInfuser(() => ({
+  'users/index': { listen: true }
+}))
 
 const mapStateToProps = state => {
   return {
     users: state.data.users,
+    ...infuser.infuse(),
   }
 }
 
-export default connect(mapStateToProps)(compWithLoader)
+export default connect(mapStateToProps)(DataInfuser.wrap(Comp))

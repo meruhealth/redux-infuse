@@ -1,4 +1,5 @@
-import { Component, createElement } from 'react'
+import _ from 'lodash'
+import { PureComponent, createElement } from 'react'
 import attachDataLoader from './dataLoader'
 import attachDependencies from './dependencyLoader'
 
@@ -8,7 +9,7 @@ export default function (paths, options) {
       || WrappedComponent.name
       || 'Component'
 
-    class WithData extends Component {
+    class WithData extends PureComponent {
       constructor (props) {
         super(props)
 
@@ -25,18 +26,22 @@ export default function (paths, options) {
         if (this.loaderOptions.dependencies) {
           this.detachDependencies = attachDependencies(this.loaderOptions.dependencies)
         }
-        this.attachLoaders(this.props)
+        this.attachLoaders(this.getPaths())
       }
 
       componentWillReceiveProps (newProps) {
-        if (typeof paths !== 'function') {
-          // sources cannot change if they are given as object
-          return
+        let shouldUpdate
+        if (newProps._infuseDataToLoad) {
+          shouldUpdate = newProps._infuseDataToLoad !== this.props._infuseDataToLoad
+        } else {
+          shouldUpdate = typeof paths === 'function'
         }
-        this.attachLoaders(newProps)
+        if (shouldUpdate) {
+          this.attachLoaders(this.getPaths(newProps))
+        }
       }
 
-      componentWillUnmount() {
+      componentWillUnmount () {
         Object.keys(this.loaders).forEach(path => {
           if (typeof this.loaders[path] === 'function') {
             this.loaders[path]()
@@ -50,9 +55,15 @@ export default function (paths, options) {
         this.isAttached = false
       }
 
-      attachLoaders (props) {
+      getPaths (props = this.props) {
+        if (props._infuseDataToLoad) {
+          return props._infuseDataToLoad
+        }
+        return (typeof paths === 'function') ? paths(props) : (paths || {})
+      }
+
+      attachLoaders (sources) {
         const expiredPaths = Object.keys(this.loaders)
-        const sources = (typeof paths === 'function') ? paths(props) : paths
         Object.keys(sources).forEach(path => {
           if (this.loaders[path]) {
             // loader exists -> it's not expired
@@ -85,7 +96,9 @@ export default function (paths, options) {
       }
 
       render () {
-        return createElement(WrappedComponent, this.props)
+        // filter out _infusedDataToLoad
+        const props = _.omit(this.props, ['_infuseDataToLoad'])
+        return createElement(WrappedComponent, props)
       }
     }
 
