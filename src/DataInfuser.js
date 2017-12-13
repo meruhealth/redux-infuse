@@ -117,13 +117,13 @@ export default class DataInfuser {
   }
 }
 
-export const withInfuser = (wrappedComponent, options) => {
+export const withInfuse = (wrappedComponent, options) => {
   return withData(null, options)(wrappedComponent)
 }
 
-DataInfuser.wrap = withInfuser
+DataInfuser.wrap = withInfuse
 
-export function createInfuser (selector) {
+export function createInfuse (selector) {
   const infuser = new DataInfuser(selector)
   const getData = infuser.collect.bind(infuser)
   return mapStateToProps => (state, props) => {
