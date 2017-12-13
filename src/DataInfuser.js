@@ -4,25 +4,18 @@ import { getConfig } from './config'
 import withData from './withData'
 
 export default class DataInfuser {
-  constructor (...args) {
-    if (args.length > 1) {
-      this.selector = createSelector(...args)
+  constructor (selector) {
+    const type = typeof selector
+    if (type === 'function' || type === 'object') {
+      this.selector = selector
     } else {
-      const type = typeof args[0]
-      if (type === 'function' || type === 'object') {
-        this.selector = args[0]
-        if (type === 'object') {
-          this.toLoad = args[0]
-        }
-      } else {
-        this.selector = _.noop
-      }
+      this.selector = undefined
     }
-    this.state = {}
 
+    this.state = {}
+    this.toLoad = undefined
     this.dataSelected = {}
     this.shouldReselect = true
-    this.toLoad = undefined
   }
 
   seed (state, props) {
@@ -30,15 +23,14 @@ export default class DataInfuser {
     this.toLoad = (typeof this.selector === 'function') ? this.selector(state, props) : this.selector
     if (prevToLoad !== this.toLoad) {
       this._prepare()
-      this.shouldReselect = true
-    } else if (this.state !== state) {
-      this._calculateIsLoading()
-      this.shouldReselect = true
     }
+    this._calculateIsLoadingIfNeeded(state)
+
     this.state = state
   }
 
   _prepare () {
+    this.shouldReselect = true
     this.getDataFor = []
     this.followLoadingOf = []
     _.forEach(this.toLoad, (opts, path) => {
@@ -61,14 +53,18 @@ export default class DataInfuser {
         this.followLoadingOf.push(pathParts)
       }
     })
-    this._calculateIsLoading()
   }
 
-  _calculateIsLoading () {
-    this.isLoading = false
+  _calculateIsLoadingIfNeeded (state) {
     const shadowNode = getConfig('shadowNode')
+    const shadowState = state[shadowNode]
+    // Don't recalculate if shadow state has not changed
+    if (this.state[shadowNode] === shadowState) {
+      return
+    }
+    this.isLoading = false
     _.forEach(this.followLoadingOf, pathParts => {
-      const state = _.get(this.state[shadowNode], pathParts)
+      const state = _.get(shadowState, pathParts)
       if (!state || !state.loadedAt && !state.failedAt) {
         this.isLoading = true
         return
@@ -76,13 +72,14 @@ export default class DataInfuser {
     })
   }
 
-  infuse () {
+  infuse (props) {
     if (!this.toLoad) {
       this.seed()
     }
-    return {
+    const infused = {
       _infuseDataToLoad: this.toLoad,
     }
+    return props ? Object.assign({}, props, infused) : infused
   }
 
   collect () {
@@ -110,8 +107,28 @@ export default class DataInfuser {
     }
     return this.dataSelected
   }
+
+  wrap (wrappedComponent, options) {
+    if (!this.toLoad) {
+      this.seed()
+    }
+    withData(null, options)(wrappedComponent)
+
+  }
 }
 
-DataInfuser.wrap = (wrappedComponent, options) => {
+export const withInfuser = (wrappedComponent, options) => {
   return withData(null, options)(wrappedComponent)
 }
+
+DataInfuser.wrap = withInfuser
+
+export function createInfuser (selector) {
+  const infuser = new DataInfuser(selector)
+  const getData = infuser.collect.bind(infuser)
+  return mapStateToProps => (state, props) => {
+    infuser.seed(state, props)
+    return infuser.infuse(mapStateToProps(state, props, infuser.isLoading, getData))
+  }
+}
+

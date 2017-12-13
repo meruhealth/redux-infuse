@@ -1,5 +1,5 @@
 import React from 'react'
-import { DataInfuser } from 'redux-infuse'
+import { withInfuser, createInfuser } from 'redux-infuse'
 import { connect } from 'react-redux'
 
 function Comp (props) {
@@ -16,15 +16,14 @@ function Comp (props) {
   )
 }
 
-const infuser = new DataInfuser(() => ({
+const infuse = createInfuser(() => ({
   'users/index': { listen: true }
 }))
 
 const mapStateToProps = state => {
   return {
     users: state.data.users,
-    ...infuser.infuse(),
   }
 }
 
-export default connect(mapStateToProps)(DataInfuser.wrap(Comp))
+export default connect(infuse(mapStateToProps))(withInfuser(Comp))
