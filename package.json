@@ -1,6 +1,6 @@
 {
   "name": "redux-infuse",
-  "version": "0.1.10",
+  "version": "0.1.10-dynamic",
   "description": "",
   "main": "src/index.js",
   "scripts": {

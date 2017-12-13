@@ -56,10 +56,10 @@ export default function (paths, options) {
       }
 
       getPaths (props = this.props) {
-        if (props._infuseDataToLoad) {
-          return props._infuseDataToLoad
+        if (paths) {
+          return (typeof paths === 'function') ? paths(props) : paths
         }
-        return (typeof paths === 'function') ? paths(props) : (paths || {})
+        return props._infuseDataToLoad || {}
       }
 
       attachLoaders (sources) {

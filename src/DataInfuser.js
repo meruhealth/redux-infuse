@@ -5,17 +5,29 @@ import withData from './withData'
 
 export default class DataInfuser {
   constructor (...args) {
-    this.selector = createSelector(...args)
+    if (args.length > 1) {
+      this.selector = createSelector(...args)
+    } else {
+      const type = typeof args[0]
+      if (type === 'function' || type === 'object') {
+        this.selector = args[0]
+        if (type === 'object') {
+          this.toLoad = args[0]
+        }
+      } else {
+        this.selector = _.noop
+      }
+    }
     this.state = {}
 
     this.dataSelected = {}
     this.shouldReselect = true
-    this.toLoad = null
+    this.toLoad = undefined
   }
 
   seed (state, props) {
     const prevToLoad = this.toLoad
-    this.toLoad = this.selector(state, props)
+    this.toLoad = (typeof this.selector === 'function') ? this.selector(state, props) : this.selector
     if (prevToLoad !== this.toLoad) {
       this._prepare()
       this.shouldReselect = true
