@@ -312,3 +312,26 @@ export default class Resolver {
 
 Resolver.cancellableRequests = {}
 Resolver.pathListeners = {}
+
+/**
+ * To remove a path completely, call function with only 1 argument
+ *
+ * @param {String} path
+ * @param {Any} data
+ */
+export function updateData (path, data) {
+  const payload = {
+    path,
+  }
+
+  if (arguments.length === 2) {
+    payload.data = data
+  } else {
+    payload.remove = true
+  }
+
+  getStore().dispatch({
+    type: DATA_LOAD_UPDATE,
+    payload,
+  })
+}

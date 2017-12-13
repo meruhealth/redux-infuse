@@ -1,6 +1,6 @@
 import withData from './withData'
 import { getReducers, renameReducers, getConfig, init } from './config'
-import Resolver from './Resolver'
+import Resolver, { updateData } from './Resolver'
 import DataInfuser, { withInfuse, createInfuse } from './DataInfuser'
 import rootNodeReducer from './reducers/root'
 import shadowNodeReducer from './reducers/shadow'
@@ -29,5 +29,5 @@ export function initLoader (argStore, argResolvers, options) {
 }
 
 export default DataInfuser
-export { withData, renameReducers, DataInfuser, withInfuse, createInfuse }
+export { withData, renameReducers, DataInfuser, withInfuse, createInfuse, updateData }
 

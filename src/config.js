@@ -4,6 +4,7 @@ export const DATA_LOAD_INITIAL = 'INFUSE/LOAD_INITIAL'
 export const DATA_LOAD_START = 'INFUSE/LOAD_START'
 export const DATA_LOAD_SUCCESS = 'INFUSE/LOAD_SUCCESS'
 export const DATA_LOAD_FAIL = 'INFUSE/LOAD_FAIL'
+export const DATA_LOAD_UPDATE = 'INFUSE/DIRECT_UPDATE'
 
 let store = {
   dispatch (action) {

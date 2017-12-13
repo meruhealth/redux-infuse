@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { setIn } from '../helpers'
-import { DATA_LOAD_INITIAL, DATA_LOAD_SUCCESS } from '../config'
+import { DATA_LOAD_INITIAL, DATA_LOAD_SUCCESS, DATA_LOAD_UPDATE } from '../config'
 
 export default function rootNodeReducer (currentState = {}, action) {
   if (!action || !action.payload) return currentState
@@ -87,6 +87,41 @@ export default function rootNodeReducer (currentState = {}, action) {
       Object.keys(extraData).forEach(key => {
         newState = setIn(newState, key.split('/'), extraData[key])
       })
+    }
+  } else if (type === DATA_LOAD_UPDATE) {
+    const {
+      data,
+      remove,
+    } = payload
+    if (remove) {
+      // This little algorithm removes empty leaves from the tree,
+      // rather than writing undefined
+      let pieces = pathPieces
+      let lastKey
+      while (lastKey = pieces.pop()) {
+        const oldData = pieces.length ? _.get(newState, pieces) : newState
+        // If the path doesn't exist in the first place, just return unchanged state
+        if (oldData === undefined || !oldData.hasOwnProperty(lastKey)) {
+          return newState
+        }
+        // Only if the object has more properties than the key it can be written to
+        if (Object.keys(oldData).length > 1) {
+          const newData = _.omit(oldData, [lastKey])
+          if (pieces.length) {
+            newState = setIn(newState, pieces, newData)
+          } else {
+            newState = newData
+          }
+          break
+        }
+      }
+      // if the while loop run through the last key,
+      // it means that the whole state would be empty after the removal
+      if (!lastKey) {
+        newState = {}
+      }
+    } else {
+      newState = setIn(newState, pathPieces, data)
     }
   }
 
