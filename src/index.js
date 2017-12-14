@@ -4,7 +4,7 @@ import Resolver, { updateData } from './Resolver'
 import DataInfuser, { withInfuse, createInfuse } from './DataInfuser'
 import rootNodeReducer from './reducers/root'
 import shadowNodeReducer from './reducers/shadow'
-import { requestPath } from './dataLoader'
+import { requestData } from './dataLoader'
 
 export function getReducers() {
   return {
@@ -37,6 +37,6 @@ export {
   withInfuse,
   createInfuse,
   updateData,
-  requestPath,
+  requestData,
 }
 

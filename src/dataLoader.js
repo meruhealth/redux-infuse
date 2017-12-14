@@ -18,6 +18,6 @@ export default function attachDataLoader (...args) {
   })
 }
 
-export function requestPath(path, forceRedownload = false) {
+export function requestData(path, forceRedownload = false) {
   return attachDataLoader(path, {waitForValue: true, forceRedownload})
 }
