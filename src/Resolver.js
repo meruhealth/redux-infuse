@@ -5,6 +5,7 @@ import {
   DATA_LOAD_START,
   DATA_LOAD_SUCCESS,
   DATA_LOAD_FAIL,
+  DATA_LOAD_UPDATE,
 } from './config'
 
 import { parseRoutePath, getNextID } from './helpers'
