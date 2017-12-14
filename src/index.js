@@ -4,6 +4,7 @@ import Resolver, { updateData } from './Resolver'
 import DataInfuser, { withInfuse, createInfuse } from './DataInfuser'
 import rootNodeReducer from './reducers/root'
 import shadowNodeReducer from './reducers/shadow'
+import { requestPath } from './dataLoader'
 
 export function getReducers() {
   return {
@@ -29,5 +30,13 @@ export function initLoader (argStore, argResolvers, options) {
 }
 
 export default DataInfuser
-export { withData, renameReducers, DataInfuser, withInfuse, createInfuse, updateData }
+export {
+  withData,
+  renameReducers,
+  DataInfuser,
+  withInfuse,
+  createInfuse,
+  updateData,
+  requestPath,
+}
 

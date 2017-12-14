@@ -114,7 +114,7 @@ export default class Resolver {
       }
       const onceDispatched = new Promise(resolve => {
         getStore().dispatch(action)
-        resolve()
+        resolve(payload)
       })
 
       // Don't carry responsibility for the errors
@@ -147,8 +147,9 @@ export default class Resolver {
         }
       })
     })
-    .then(() => {
+    .then(res => {
       delete Resolver.cancellableRequests[path]
+      return res
     })
   }
 
@@ -274,8 +275,12 @@ export default class Resolver {
       return
     }
 
-    // Don't return promise as there's nothing to detach in fetch
-    this.fetch(pathResolved)
+    const onceFetched = this.fetch(pathResolved)
+    // Normally a promise is not returned for not to wait for fetch execution,
+    // but this can be overrided
+    if (pathResolved.pathOptions.waitForValue) {
+      return onceFetched
+    }
   }
 
   listen (pathResolved) {
