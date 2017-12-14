@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { setIn } from '../helpers'
-import { DATA_LOAD_START, DATA_LOAD_SUCCESS, DATA_LOAD_FAIL } from '../config'
+import { DATA_LOAD_START, DATA_LOAD_SUCCESS, DATA_LOAD_FAIL, DATA_LOAD_UPDATE } from '../config'
 
 export default function shadowNodeReducer (currentState = {}, action) {
   if (!action || !action.payload) return currentState
@@ -45,6 +45,11 @@ export default function shadowNodeReducer (currentState = {}, action) {
     newState = setIn(newState, pathPieces, {
       failedAt: timestamp,
       error: payload.error,
+    })
+  } else if (type === DATA_LOAD_UPDATE) {
+    // Internal update should be treated as if data was loaded for the path
+    newState = setIn(newState, pathPieces, {
+      loadedAt: timestamp,
     })
   }
 
