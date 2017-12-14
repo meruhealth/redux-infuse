@@ -24,6 +24,10 @@ export function parseRoutePath (path, route) {
   const pathParts = path.split('/')
   const matchParts = route.split('/')
   const result = {}
+  // if path is longer than the pattern and the pattern does not end with *
+  if (pathParts.length > matchParts.length && matchParts[matchParts.length - 1] !== '*') {
+    return false
+  }
   for (let i = 0; i < matchParts.length; i++) {
     const key = matchParts[i]
     const val = pathParts[i]
