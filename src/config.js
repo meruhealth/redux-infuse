@@ -23,9 +23,9 @@ export function getStore () {
 const defaultOptions = {
   rootNode: 'data',
   shadowNode: '_data',
-  dataFetchTimeout: 10000,
-  retryAfter: 5000,
-  refreshAfter: 60000,
+  dataFetchTimeout: 10000, // try requesting data again
+  retryAfter: 5000, // try requesting again
+  refreshAfter: Infinity, // this can be overridden by the user
 }
 
 let currentOptions = Object.assign({}, defaultOptions)
