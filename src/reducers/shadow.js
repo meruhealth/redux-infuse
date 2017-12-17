@@ -8,6 +8,8 @@ export default function shadowNodeReducer (currentState = {}, action) {
 
   const {
     path,
+    appendIndex,
+    dataPath,
     extraData,
     timestamp,
   } = payload
@@ -30,9 +32,21 @@ export default function shadowNodeReducer (currentState = {}, action) {
     }
     newState = setIn(newState, pathPieces, newLoadingState)
   } else if (type === DATA_LOAD_SUCCESS) {
-    newState = setIn(newState, pathPieces, {
-      loadedAt: timestamp,
-    })
+    newState = setIn(newState, pathPieces, { loadedAt: timestamp })
+
+    if (dataPath && dataPath !== path) {
+      const dataPathPieces = dataPath.split('/')
+      let newObj = { loadedAt: timestamp }
+      // Keep state of index start / end having reached
+      if (appendIndex) {
+        const previousObj = _.pick(
+          _.get(newState, dataPathPieces),
+          ['indexStart', 'indexEnd'],
+        )
+        newObj = Object.assign({}, previousObj, newObj)
+      }
+      newState = setIn(newState, dataPathPieces, newObj)
+    }
 
     if (extraData) {
       Object.keys(extraData).forEach(key => {

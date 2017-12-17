@@ -99,7 +99,7 @@ export default class Resolver {
       cancelPromise,
     ])
     .then(dataReceived => {
-      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex', 'removeFromIndex'])
+      const payload = _.pick(dataReceived, ['data', 'extraData', 'appendIndex', 'removeFromIndex', 'indexStart', 'indexEnd'])
       if (_.isEmpty(payload)) {
         throw new Error(`Resolver for path '${path}' dispatched empty response`)
       }
