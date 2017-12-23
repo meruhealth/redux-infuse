@@ -1,5 +1,5 @@
 import withData from './withData'
-import { getReducers, renameReducers, getConfig, init } from './config'
+import { renameReducers, getConfig, init } from './config'
 import Resolver, { updateData } from './Resolver'
 import DataInfuser, { withInfuse, createInfuse } from './DataInfuser'
 import rootNodeReducer from './reducers/root'

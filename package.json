@@ -1,10 +1,11 @@
 {
   "name": "redux-infuse",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "build": "babel src -d lib",
+    "build": "babel src --out-dir build --source-maps --ignore **/__tests__,**/__mocks__",
+    "publish": "npm run build && node scripts/prepublish.js && npm publish build/",
     "test": "jest"
   },
   "jest": {
