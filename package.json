@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/alizbazar/redux-infuse.git"
+    "url": "git+ssh://git@github.com/meruhealth/redux-infuse.git"
   },
   "author": "alizbazar@alizweb.com",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/alizbazar/redux-infuse/issues"
+    "url": "https://github.com/meruhealth/redux-infuse/issues"
   },
-  "homepage": "https://github.com/alizbazar/redux-infuse#readme",
+  "homepage": "https://github.com/meruhealth/redux-infuse#readme",
   "dependencies": {
     "lodash": "^4.17.4 || ^3.0.0",
     "reselect": "^3.0.0 || ^2.0.0"
